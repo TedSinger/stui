@@ -1,8 +1,12 @@
 
+HtmlExpr = [selector, Dict key value, List HtmlExpr] | HtmlString
+
 Command = Sub selector onWhat values
-    | SetHtml selector html
-    | SetAttrs selector attrs
-    | SetCss selector styles
+    | PostHtml selector index HtmlExpr
+    | PutHtml selector HtmlExpr
+    | DeleteHtml selector
+    | PatchAttrs selector attrs
+    | PatchCss selector styles
     | Close
 
 Event = Hi | Bye
