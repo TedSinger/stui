@@ -1,5 +1,5 @@
 
-HtmlExpr = [selector, Dict key value, List HtmlExpr] | HtmlString
+HtmlExpr = selector attrs children
 
 Command = Sub selector onWhat values
     | PostHtml selector index HtmlExpr
@@ -23,6 +23,7 @@ TODO:
         think about vdom
             the driver should not enforce TEA
     reliability/usability/clarity
+        implement PutHTML and DeleteHTML
         debug flags
         standardized test app+procedure
         test Close

@@ -17,12 +17,12 @@ func parseCommand(msg []byte) Command {
 	kind := v[0].(string)
 	if kind == "Sub" {
 		m = NewSubCommand(v)
-	} else if kind == "SetAttrs" {
-		m = NewSetAttrsCommand(v)
-	} else if kind == "SetHtml" {
-		m = NewSetHTMLCommand(v)
-	} else if kind == "SetCss" {
-		m = NewSetCSSCommand(v)
+	} else if kind == "PatchAttrs" {
+		m = NewPatchAttrsCommand(v)
+	} else if kind == "PostHtml" {
+		m = NewPostHTMLCommand(v)
+	} else if kind == "PatchCss" {
+		m = NewPatchCSSCommand(v)
 	} else if kind == "Close" {
 		m = CloseCommand{}
 	} else {
@@ -46,20 +46,18 @@ func (g Guise) listenAndApply() {
 	subs := make([]SubCommand, 0)
 	for {
 		someBytes, _ := g.commandSock.RecvBytes(0)
-		os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
+		// os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
 		v := parseCommand(someBytes)
 		switch cmd := v.(type) {
 		case SubCommand: // odd: the go driver is collecting subs...
 			subs = append(subs, cmd)
 			cmd.Apply(g.View)
-		case SetHTMLCommand:
+		case PostHTMLCommand:
 			cmd.Apply(g.View)
 			for _, sub := range subs {
 				sub.Apply(g.View)
 			}
-		case SetCSSCommand: // odd: ... but the webview is collecting CSS
-			cmd.Apply(g.View)
-		case SetAttrsCommand: // odd: ... but the webview is collecting CSS
+		default: // odd: ... but the webview is collecting CSS
 			cmd.Apply(g.View)
 		}
 	}
@@ -76,7 +74,7 @@ func NewGuise() Guise {
 	commandSock, _ := zmq4.NewSocket(zmq4.PULL)
 	
 	handleRPC := func(w webview.WebView, data string) {
-		os.Stderr.WriteString("guise-out: " + data + "\n")
+		// os.Stderr.WriteString("guise-out: " + data + "\n")
 		eventSock.Send(data, 0)
 	}
 

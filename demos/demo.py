@@ -19,26 +19,29 @@ while True:
     event = eventSocket.recv_json()
     
     if event[0] == "hi":
-        commandSocket.send_json(["SetHtml", "#app", "<button>hi there!</button><textarea>type here...</textarea><label></label>"])
+        commandSocket.send_json(["PostHtml", "#app", -1, ["button", {"textContent": "hello"}, []]])
+        commandSocket.send_json(["PostHtml", "#app", -1, ["textarea", {}, []]])
+        commandSocket.send_json(["PostHtml", "#app", 1, ["label", {}, []]])
         commandSocket.send_json(["Sub", "button", "onclick", ["x", "y"]])
         commandSocket.send_json(["Sub", "textarea", "onkeyup", ["target.value"]])
         commandSocket.send_json(["Sub", "textarea", "onmousemove", ["x"]])
-        commandSocket.send_json(["SetCss", "button", {"transition": "background-color 2s"}])
-        commandSocket.send_json(["SetCss", "#app", {"max-width": "100%"}])
+        commandSocket.send_json(["PatchCss", "button", {"transition": "background-color 2s"}])
+        commandSocket.send_json(["PatchCss", "#app", {"max-width": "100%"}])
     elif event[0] == "bye":
         break
     elif event[1] == "button" and event[2] == "onclick":
-        commandSocket.send_json(["SetCss", "button", {"background-color": get_color()}])
+        commandSocket.send_json(["PatchCss", "button", {"background-color": get_color()}])
     elif event[1] == "textarea" and event[2] == "onkeyup":
         text = event[3]['target.value']
         if 'disable' in text and not disabled:
-            commandSocket.send_json(['SetAttrs', 'button', {'disabled':True}])
+            commandSocket.send_json(['PatchAttrs', 'button', {'disabled':True}])
             disabled = True
         elif disabled:
-            commandSocket.send_json(['SetAttrs', 'button', {'disabled':False}])
+            print(text)
+            commandSocket.send_json(['PatchAttrs', 'button', {'disabled':False}])
             disabled = False
-        commandSocket.send_json(["SetHtml", "label", text])
-        commandSocket.send_json(["SetCss", "button", {"background-color": "revert"}])
+        commandSocket.send_json(["PatchAttrs", "label", {"textContent":text}])
+        commandSocket.send_json(["PatchCss", "button", {"background-color": "revert"}])
     elif event[1] == "textarea" and event[2] == "onmousemove":
-        commandSocket.send_json(['SetCss', 'textarea', {'font-size':str(int(event[3]["x"] / 10)) + 'px'}])
-    print("demo: " + str(event))
+        commandSocket.send_json(['PatchCss', 'textarea', {'font-size':str(int(event[3]["x"] / 10)) + 'px'}])
+    # print("demo: " + str(event))
