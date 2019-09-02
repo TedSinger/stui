@@ -21,6 +21,8 @@ func parseCommand(msg []byte) Command {
 		m = NewPatchAttrsCommand(v)
 	} else if kind == "PostHtml" {
 		m = NewPostHTMLCommand(v)
+	} else if kind == "DeleteHtml" {
+		m = NewDeleteHTMLCommand(v)
 	} else if kind == "PatchCss" {
 		m = NewPatchCSSCommand(v)
 	} else if kind == "Close" {
@@ -46,7 +48,7 @@ func (g Guise) listenAndApply() {
 	subs := make([]SubCommand, 0)
 	for {
 		someBytes, _ := g.commandSock.RecvBytes(0)
-		// os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
+		os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
 		v := parseCommand(someBytes)
 		switch cmd := v.(type) {
 		case SubCommand: // odd: the go driver is collecting subs...

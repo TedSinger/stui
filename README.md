@@ -17,16 +17,16 @@ Event = Hi | Bye
 TODO:
     app architecture
         write more demos
-            drag and drop
+            standardized test app+procedure
+                drag and drop
         who should choose the ports?
             app should be able to
         think about vdom
             the driver should not enforce TEA
     reliability/usability/clarity
-        implement PutHTML and DeleteHTML
+        implement PutHTML
         debug flags
-        standardized test app+procedure
-        test Close
+        fix Close
         consistent casing on output
         case-insensitivity on input
             generous message format?
@@ -34,11 +34,12 @@ TODO:
 
     performance
         test performance
-            it's fine on the zmq side...
+            it's fine on the zmq side
+            seems 5% cpu/mem for an idle+empty app. high, but acceptable for now
+            test scaling with large doms
         css
             accumulating rules? how to delete/overwrite?
             should maintain a copy in the driver
-        avoid rebuilding SetHtml string messages
-    
+        
     rename gluier? guiso?
 

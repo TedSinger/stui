@@ -45,6 +45,17 @@ type HTML struct {
 	Attrs map[string]interface{}
 	Children []HTML
 }
+func NewHTMLFromInterface(v interface{}) HTML {
+	w := v.([]interface{})
+	tag := w[0].(string)
+	attrs := w[1].(map[string]interface{})
+	rawChildren := w[2].([]interface{})
+	actualChildren := make([]HTML, len(rawChildren))
+	for i, c := range rawChildren {
+		actualChildren[i] = NewHTMLFromInterface(c)
+	}
+	return HTML{tag, attrs, actualChildren}
+}
 
 func (h HTML) createElement(jsName string) string {
 	ret := fmt.Sprintf(`%s = document.createElement("%s");`, jsName, h.Tag)
@@ -80,23 +91,26 @@ func (s PostHTMLCommand) Apply(w webview.WebView) {
 	w.Dispatch(func() {w.Eval(jsFunc)})
 }
 
-func NewHTMLFromInterface(v interface{}) HTML {
-	w := v.([]interface{})
-	tag := w[0].(string)
-	attrs := w[1].(map[string]interface{})
-	rawChildren := w[2].([]interface{})
-	actualChildren := make([]HTML, len(rawChildren))
-	for i, c := range rawChildren {
-		actualChildren[i] = NewHTMLFromInterface(c)
-	}
-	return HTML{tag, attrs, actualChildren}
-}
-
 func NewPostHTMLCommand(v []interface{}) PostHTMLCommand {
 	selector := v[1].(string)
 	index := v[2].(float64)
 	html := NewHTMLFromInterface(v[3])
 	return PostHTMLCommand{selector, int(index), html}
+}
+
+type DeleteHTMLCommand struct {
+	Selector string
+}
+
+func NewDeleteHTMLCommand(v []interface{}) DeleteHTMLCommand {
+	selector := v[1].(string)
+	return DeleteHTMLCommand{selector}
+}
+
+func (s DeleteHTMLCommand) Apply(w webview.WebView) {
+	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) {elem.remove()});`,
+					 s.Selector)
+	w.Dispatch(func() {w.Eval(jsFunc)})
 }
 
 type PatchAttrsCommand struct {
@@ -151,5 +165,5 @@ func NewPatchCSSCommand(v []interface{}) PatchCSSCommand {
 type CloseCommand struct {}
 
 func (c CloseCommand) Apply(w webview.WebView) {
-	w.Exit()
+	w.Dispatch(func() {w.Exit()})
 }
