@@ -1,55 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"github.com/zserge/webview"
-	"github.com/pebbe/zmq4"
-	"encoding/json"
-	"github.com/y0ssar1an/q"
 )
-
-func parseCommand(msg []byte) Command {
-	var v []interface{}
-	var m Command
-	json.Unmarshal(msg, &v)
-	
-	kind := v[0].(string)
-	if kind == "Sub" {
-		m = NewSubCommand(v)
-	} else if kind == "PatchAttrs" {
-		m = NewPatchAttrsCommand(v)
-	} else if kind == "PostHtml" {
-		m = NewPostHTMLCommand(v)
-	} else if kind == "DeleteHtml" {
-		m = NewDeleteHTMLCommand(v)
-	} else if kind == "PatchCss" {
-		m = NewPatchCSSCommand(v)
-	} else if kind == "Close" {
-		m = CloseCommand{}
-	} else {
-		q.Q(v)
-	}
-	return m
-}
-
 
 
 type Guise struct {
 	View webview.WebView
-	eventAddr string
-	eventSock *zmq4.Socket
-	commandAddr string
-	commandSock *zmq4.Socket
+	Conn Conn
 }
 
 func (g Guise) listenAndApply() {
-	g.commandSock.Connect(g.commandAddr)
 	subs := make([]SubCommand, 0)
 	for {
-		someBytes, _ := g.commandSock.RecvBytes(0)
-		os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
-		v := parseCommand(someBytes)
+		v := g.Conn.Recv()
 		switch cmd := v.(type) {
 		case SubCommand: // odd: the go driver is collecting subs...
 			subs = append(subs, cmd)
@@ -65,41 +29,30 @@ func (g Guise) listenAndApply() {
 	}
 }
 
-func NewGuise() Guise {
-	eventAddr := "ipc:///tmp/guiseEvents"
-	commandAddr := "ipc:///tmp/guiseCommands"
-	fmt.Printf(`{"events":"%s", "commands":"%s"}`, eventAddr, commandAddr)
-	os.Stdout.Close() // hmm, this seems like a bad global effect...
-	eventSock, _ := zmq4.NewSocket(zmq4.PUSH)
-	eventSock.Bind(eventAddr)
-	eventSock.Send(`["hi"]`, 0)
-	commandSock, _ := zmq4.NewSocket(zmq4.PULL)
-	
-	handleRPC := func(w webview.WebView, data string) {
-		// os.Stderr.WriteString("guise-out: " + data + "\n")
-		eventSock.Send(data, 0)
-	}
+func NewGuise(c Conn) Guise {
+	c.Start()
+		
+	cb := func(w webview.WebView, s string) {c.Send(s)}
 
 	view := webview.New(webview.Settings{
 		Width:     300,
 		Height:    400,
 		Title:     "Hi Guise",
 		Resizable: true,
-		ExternalInvokeCallback: handleRPC,
+		ExternalInvokeCallback: cb,
 	})
-	return Guise{view, eventAddr, eventSock, commandAddr, commandSock}
+	c.Send(`["hi"]`)
+	return Guise{view, c}
 }
 
 func main() {
-	g := NewGuise()
+	addr := "ipc:///tmp/guise"
+	c := NewZMQConn(addr)
+	g := NewGuise(c)
 	go g.listenAndApply()
 	defer g.View.Exit()
-	defer g.eventSock.Send(`["bye"]`, 0)
-	
-	// ???
-	defer g.commandSock.Disconnect(g.commandAddr)
-	defer g.eventSock.Disconnect(g.eventAddr)
-	defer g.eventSock.Close()
+	defer g.Conn.Send(`["bye"]`)
+	defer g.Conn.Stop()
 	
 	g.View.Run()
 }

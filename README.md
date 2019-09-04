@@ -37,9 +37,12 @@ TODO:
             it's fine on the zmq side
             seems 5% cpu/mem for an idle+empty app. high, but acceptable for now
             test scaling with large doms
+            button-click spamming that adds elements and css falls behind
+                actually, no. only if there are many css-transitions
         css
             accumulating rules? how to delete/overwrite?
             should maintain a copy in the driver
         
     rename gluier? guiso?
+    explain message format in a sane way
 
