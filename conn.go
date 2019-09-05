@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"os"
 	"fmt"
+	"io"
+	"time"
 )
 
 type RawMessage []interface{}
@@ -77,3 +79,34 @@ func (z ZMQConn) Stop() {
 	z.sock.Close()
 }
 
+type StreamConn struct {
+	in io.Reader
+	decoder *json.Decoder
+	out io.Writer
+}
+
+func StdioConn() StreamConn {
+	d := json.NewDecoder(os.Stdin)
+	return StreamConn{os.Stdin, d, os.Stdout}
+}
+
+func FileConn(in string, out string) StreamConn {
+	f, _ := os.Open(in)
+	g, _ := os.OpenFile(out, os.O_WRONLY, 777)
+	d := json.NewDecoder(f)
+	return StreamConn{f, d, g}
+}
+
+func (f StreamConn) Start() {}
+func (f StreamConn) Send(s string) {
+	f.out.Write([]byte(s + "\n\x00"))
+}
+func (f StreamConn) Recv() Command {
+	var r RawMessage
+	for ! f.decoder.More() {
+		time.Sleep(time.Millisecond * 10)
+	}
+	f.decoder.Decode(&r)
+	return r.toCommand()
+}
+func (f StreamConn) Stop() {}

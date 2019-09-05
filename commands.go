@@ -165,5 +165,5 @@ func NewPatchCSSCommand(v []interface{}) PatchCSSCommand {
 type CloseCommand struct {}
 
 func (c CloseCommand) Apply(w webview.WebView) {
-	w.Dispatch(func() {w.Exit()})
+	w.Dispatch(func() {w.Terminate()})
 }

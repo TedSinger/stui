@@ -1,36 +1,36 @@
 
-HtmlExpr = selector attrs children
+HtmlExpr = {selector: string, attrs: Dict String String, children: List HtmlExpr}
 
-Command = Sub selector onWhat values
-    | PostHtml selector index HtmlExpr
-    | PutHtml selector HtmlExpr
-    | DeleteHtml selector
-    | PatchAttrs selector attrs
-    | PatchCss selector styles
+Command = Sub {selector: string, onWhat: string, values: List String}
+    | PostHtml {selector: string, index: int, html: HtmlExpr}
+    | PutHtml {selector: string, html: HtmlExpr}
+    | DeleteHtml {selector: string}
+    | PatchAttrs {selector: string, attrs: Dict String String}
+    | PatchCss {selector: string, styles: Dict String String}
     | Close
 
 Event = Hi | Bye
-    | UI selector onWhat values
-    | Ok hash ??
-    | Err errorMessage
+    | UI {selector: string, onWhat: string, values: List String}
+    | Err {errorMessage: string}
 
 TODO:
     app architecture
         write more demos
+            bash demo should be a multi-file selector
             standardized test app+procedure
                 drag and drop
-        who should choose the ports?
-            app should be able to
-        think about vdom
-            the driver should not enforce TEA
     reliability/usability/clarity
+        caller should choose transport+names/urls
+        change messages to refer to Elems, Attrs, and Styles
+        implement Err message
         implement PutHTML
         debug flags
-        fix Close
         consistent casing on output
-        case-insensitivity on input
-            generous message format?
-        implement ok/err
+        generous message format
+            case-insensitivity?
+            abbreviations:
+                omitted attrs or children in HtmlExpr assumed empty
+                ["label", "some text"] -> ["label", {"textContent": "some text"}, []]
 
     performance
         test performance

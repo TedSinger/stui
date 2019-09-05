@@ -7,7 +7,7 @@ import (
 
 type Guise struct {
 	View webview.WebView
-	Conn Conn
+	Conn
 }
 
 func (g Guise) listenAndApply() {
@@ -46,13 +46,13 @@ func NewGuise(c Conn) Guise {
 }
 
 func main() {
-	addr := "ipc:///tmp/guise"
-	c := NewZMQConn(addr)
-	g := NewGuise(c)
+	// addr := "ipc:///tmp/guise"
+	// c := NewZMQConn(addr)
+	g := NewGuise(StdioConn())
 	go g.listenAndApply()
 	defer g.View.Exit()
-	defer g.Conn.Send(`["bye"]`)
-	defer g.Conn.Stop()
+	defer g.Send(`["bye"]`)
+	defer g.Stop()
 	
 	g.View.Run()
 }
