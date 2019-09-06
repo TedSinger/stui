@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/zserge/webview"
+	"flag"
 )
 
 
@@ -11,14 +12,14 @@ type Guise struct {
 }
 
 func (g Guise) listenAndApply() {
-	subs := make([]SubCommand, 0)
+	subs := make([]SubscribeCommand, 0)
 	for {
 		v := g.Conn.Recv()
 		switch cmd := v.(type) {
-		case SubCommand: // odd: the go driver is collecting subs...
+		case SubscribeCommand: // odd: the go driver is collecting subs...
 			subs = append(subs, cmd)
 			cmd.Apply(g.View)
-		case PostHTMLCommand:
+		case PostElemCommand:
 			cmd.Apply(g.View)
 			for _, sub := range subs {
 				sub.Apply(g.View)
@@ -46,9 +47,18 @@ func NewGuise(c Conn) Guise {
 }
 
 func main() {
-	// addr := "ipc:///tmp/guise"
-	// c := NewZMQConn(addr)
-	g := NewGuise(StdioConn())
+	connectionType := flag.String("conn", "stdio", "stdio or zmq (ipc:///tmp/guise)")
+	flag.Parse()
+	var conn Conn
+	if *connectionType == "stdio" {
+		conn = StdioConn()
+	} else if *connectionType == "zmq" {
+		conn = NewZMQConn("ipc:///tmp/guise")
+	} else {
+		println("`conn` must be `stdio` or `zmq`")
+		return
+	}
+	g := NewGuise(conn)
 	go g.listenAndApply()
 	defer g.View.Exit()
 	defer g.Send(`["bye"]`)

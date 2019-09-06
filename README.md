@@ -1,12 +1,12 @@
 
 HtmlExpr = {selector: string, attrs: Dict String String, children: List HtmlExpr}
 
-Command = Sub {selector: string, onWhat: string, values: List String}
-    | PostHtml {selector: string, index: int, html: HtmlExpr}
-    | PutHtml {selector: string, html: HtmlExpr}
-    | DeleteHtml {selector: string}
+Command = Subscribe {selector: string, onWhat: string, values: List String}
+    | PostElem {selector: string, index: int, html: HtmlExpr}
+    | PutElem {selector: string, html: HtmlExpr}
+    | DeleteElem {selector: string}
     | PatchAttrs {selector: string, attrs: Dict String String}
-    | PatchCss {selector: string, styles: Dict String String}
+    | PatchStyles {selector: string, styles: Dict String String}
     | Close
 
 Event = Hi | Bye
@@ -17,20 +17,22 @@ TODO:
     app architecture
         write more demos
             bash demo should be a multi-file selector
+            drag and drop
             standardized test app+procedure
-                drag and drop
+        subscriptions
+            elements can potentially cease matching a sub selector
     reliability/usability/clarity
-        caller should choose transport+names/urls
-        change messages to refer to Elems, Attrs, and Styles
-        implement Err message
-        implement PutHTML
-        debug flags
-        consistent casing on output
-        generous message format
-            case-insensitivity?
+        implement PutElem
+        errors
+            report js errors
+            improve Err message
+        message format
+            sane explanation of grammar
+            case-insensitivity on input? consistency on output?
             abbreviations:
                 omitted attrs or children in HtmlExpr assumed empty
                 ["label", "some text"] -> ["label", {"textContent": "some text"}, []]
+        caller should choose zmq socket name
 
     performance
         test performance
@@ -41,8 +43,4 @@ TODO:
                 actually, no. only if there are many css-transitions
         css
             accumulating rules? how to delete/overwrite?
-            should maintain a copy in the driver
-        
-    rename gluier? guiso?
-    explain message format in a sane way
-
+            maintain a copy in the driver?

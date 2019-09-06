@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/y0ssar1an/q"
 	"github.com/pebbe/zmq4"
 	"encoding/json"
 	"os"
@@ -21,20 +20,21 @@ func (r RawMessage) toCommand() Command {
 	var m Command
 
 	kind := r[0].(string)
-	if kind == "Sub" {
-		m = NewSubCommand(r)
+
+	if kind == "Subscribe" {
+		m = NewSubscribeCommand(r)
 	} else if kind == "PatchAttrs" {
 		m = NewPatchAttrsCommand(r)
-	} else if kind == "PostHtml" {
-		m = NewPostHTMLCommand(r)
-	} else if kind == "DeleteHtml" {
-		m = NewDeleteHTMLCommand(r)
-	} else if kind == "PatchCss" {
-		m = NewPatchCSSCommand(r)
+	} else if kind == "PostElem" {
+		m = NewPostElemCommand(r)
+	} else if kind == "DeleteElem" {
+		m = NewDeleteElemCommand(r)
+	} else if kind == "PatchStyles" {
+		m = NewPatchStylesCommand(r)
 	} else if kind == "Close" {
 		m = CloseCommand{}
 	} else {
-		q.Q(r)
+		m = NewErrCommand(r)
 	}
 	return m
 }

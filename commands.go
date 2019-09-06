@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/zserge/webview"
 	"fmt"
-	// "html/template"
 	"encoding/json"
 )
 
@@ -11,25 +10,25 @@ type Command interface {
 	Apply(webview.WebView)
 }
 
-type SubCommand struct {
-	Selector string
-	OnWhat string
-	Values []string
+type SubscribeCommand struct {
+	selector string
+	onWhat string
+	values []string
 }
 
-func (s SubCommand) Apply(w webview.WebView) {
+func (c SubscribeCommand) Apply(w webview.WebView) {
 	jsonDict := "{"
-	for _, v := range s.Values {
+	for _, v := range c.values {
 		jsonDict += fmt.Sprintf(`"%s":e.%s,`, v, v) + "\n"
 	}
 	jsonDict += "}"
-	jsCallback := fmt.Sprintf(`function(e) {window.external.invoke(JSON.stringify(["ui", "%s", "%s", %s]))}`, s.Selector, s.OnWhat, jsonDict)
+	jsCallback := fmt.Sprintf(`function(e) {window.external.invoke(JSON.stringify(["ui", "%s", "%s", %s]))}`, c.selector, c.onWhat, jsonDict)
 	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) {elem.%s = %s})`, 
-		s.Selector, s.OnWhat, jsCallback)
+		c.selector, c.onWhat, jsCallback)
 	w.Dispatch(func() {w.Eval(jsFunc)})
 }
 
-func NewSubCommand(v []interface{}) SubCommand {
+func NewSubscribeCommand(v []interface{}) SubscribeCommand {
 	selector := v[1].(string)
 	onWhat := v[2].(string)
 	rawValues := v[3].([]interface{})
@@ -37,33 +36,33 @@ func NewSubCommand(v []interface{}) SubCommand {
 	for i, r := range rawValues {
 		values[i] = r.(string)
 	}
-	return SubCommand{selector, onWhat, values}
+	return SubscribeCommand{selector, onWhat, values}
 }
 
-type HTML struct {
-	Tag string
-	Attrs map[string]interface{}
-	Children []HTML
+type Elem struct {
+	tag string
+	attrs map[string]interface{}
+	children []Elem
 }
-func NewHTMLFromInterface(v interface{}) HTML {
+func NewElemFromInterface(v interface{}) Elem {
 	w := v.([]interface{})
 	tag := w[0].(string)
 	attrs := w[1].(map[string]interface{})
 	rawChildren := w[2].([]interface{})
-	actualChildren := make([]HTML, len(rawChildren))
+	actualChildren := make([]Elem, len(rawChildren))
 	for i, c := range rawChildren {
-		actualChildren[i] = NewHTMLFromInterface(c)
+		actualChildren[i] = NewElemFromInterface(c)
 	}
-	return HTML{tag, attrs, actualChildren}
+	return Elem{tag, attrs, actualChildren}
 }
 
-func (h HTML) createElement(jsName string) string {
-	ret := fmt.Sprintf(`%s = document.createElement("%s");`, jsName, h.Tag)
-	for k, v := range h.Attrs {
+func (e Elem) createElement(jsName string) string {
+	ret := fmt.Sprintf(`%s = document.createElement("%s");`, jsName, e.tag)
+	for k, v := range e.attrs {
 		valuePart, _ := json.Marshal(v)
 		ret += fmt.Sprintf(`%s.%s = %s;`, jsName, k, string(valuePart)) + "\n"
 	}
-	for i, c := range h.Children {
+	for i, c := range e.children {
 		childName := fmt.Sprintf(`%s_%d`, jsName, i)
 		ret += c.createElement(childName)
 		ret += fmt.Sprintf(`%s.appendChild(%s);`, jsName, childName)
@@ -71,61 +70,61 @@ func (h HTML) createElement(jsName string) string {
 	return ret
 }
 
-type PostHTMLCommand struct {
-	Selector string
-	Index int
-	Html HTML
+type PostElemCommand struct {
+	selector string
+	index int
+	elem Elem
 }
 
-func (s PostHTMLCommand) Apply(w webview.WebView) {
-	elem := s.Html.createElement("tmp")
+func (c PostElemCommand) Apply(w webview.WebView) {
+	elem := c.elem.createElement("tmp")
 	var forEachFnBody string
-	if s.Index == -1 {
+	if c.index == -1 {
 		forEachFnBody = elem + `elem.appendChild(tmp);`
 	} else {
-		forEachFnBody = elem + fmt.Sprintf(`elem.insertBefore(tmp, elem.childNodes[%d]);`, s.Index)
+		forEachFnBody = elem + fmt.Sprintf(`elem.insertBefore(tmp, elem.childNodes[%d]);`, c.index)
 	}
 	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) {%s});`,
-					 s.Selector, forEachFnBody)
+					 c.selector, forEachFnBody)
 	// println(jsFunc)
 	w.Dispatch(func() {w.Eval(jsFunc)})
 }
 
-func NewPostHTMLCommand(v []interface{}) PostHTMLCommand {
+func NewPostElemCommand(v []interface{}) PostElemCommand {
 	selector := v[1].(string)
 	index := v[2].(float64)
-	html := NewHTMLFromInterface(v[3])
-	return PostHTMLCommand{selector, int(index), html}
+	elem := NewElemFromInterface(v[3])
+	return PostElemCommand{selector, int(index), elem}
 }
 
-type DeleteHTMLCommand struct {
-	Selector string
+type DeleteElemCommand struct {
+	selector string
 }
 
-func NewDeleteHTMLCommand(v []interface{}) DeleteHTMLCommand {
+func NewDeleteElemCommand(v []interface{}) DeleteElemCommand {
 	selector := v[1].(string)
-	return DeleteHTMLCommand{selector}
+	return DeleteElemCommand{selector}
 }
 
-func (s DeleteHTMLCommand) Apply(w webview.WebView) {
+func (c DeleteElemCommand) Apply(w webview.WebView) {
 	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) {elem.remove()});`,
-					 s.Selector)
+					 c.selector)
 	w.Dispatch(func() {w.Eval(jsFunc)})
 }
 
 type PatchAttrsCommand struct {
-	Selector string
-	Attrs map[string]interface{}
+	selector string
+	attrs map[string]interface{}
 }
-func (s PatchAttrsCommand) Apply(w webview.WebView) {
+func (c PatchAttrsCommand) Apply(w webview.WebView) {
 	fnBody := "{"
-	for k, v := range s.Attrs {
+	for k, v := range c.attrs {
 		valuePart, _ := json.Marshal(v)
 		fnBody += fmt.Sprintf(`elem.%s = %s;`, k, string(valuePart)) + "\n"
 	}
 	fnBody += "}"
 	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) %s)`,
-					 s.Selector, fnBody)
+					 c.selector, fnBody)
 	
 	w.Dispatch(func() {w.Eval(jsFunc)})
 }
@@ -137,21 +136,21 @@ func NewPatchAttrsCommand(v []interface{}) PatchAttrsCommand {
 }
 
 
-type PatchCSSCommand struct {
-	Selector string
-	Styles map[string]string
+type PatchStylesCommand struct {
+	selector string
+	styles map[string]string
 }
 
-func (s PatchCSSCommand) Apply(w webview.WebView) {
-	cssText := s.Selector + " {\n"
-	for attr, value := range s.Styles {
+func (c PatchStylesCommand) Apply(w webview.WebView) {
+	cssText := c.selector + " {\n"
+	for attr, value := range c.styles {
 		cssText += "  " + attr + ": " + value + ";\n"
 	}
 	cssText += "}"
 	w.Dispatch(func() {w.InjectCSS(cssText)})
 }
 
-func NewPatchCSSCommand(v []interface{}) PatchCSSCommand {
+func NewPatchStylesCommand(v []interface{}) PatchStylesCommand {
 	selector := v[1].(string)
 	rawStyles := v[2].(map[string]interface{})
 	actualStyles := make(map[string]string)
@@ -159,11 +158,24 @@ func NewPatchCSSCommand(v []interface{}) PatchCSSCommand {
 		actualValue := rawValue.(string)
 		actualStyles[attribute] = actualValue
 	}
-	return PatchCSSCommand{selector, actualStyles}
+	return PatchStylesCommand{selector, actualStyles}
 }
 
 type CloseCommand struct {}
 
 func (c CloseCommand) Apply(w webview.WebView) {
 	w.Dispatch(func() {w.Terminate()})
+}
+
+type ErrCommand struct {
+	original []interface{}
+}
+
+func NewErrCommand(v []interface{}) ErrCommand {
+	return ErrCommand{v}
+}
+
+func (c ErrCommand) Apply(w webview.WebView) {
+	jsFunc := fmt.Sprintf(`window.external.invoke(JSON.stringify(["err", "%v"]))`, c.original)
+	w.Dispatch(func() {w.Eval(jsFunc)})
 }

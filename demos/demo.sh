@@ -12,14 +12,14 @@ do
     if read msg </tmp/guiseOut; then
         echo $msg >&2
         if [ '["hi"]' = "$msg" ]; then
-            echo '["PostHtml", "#app", -1, 
+            echo '["PostElem", "#app", -1, 
                 ["label", {"textContent":"I can make a GUI in *bash*?!"},[]]]'  > /tmp/guiseIn
-            echo '["PostHtml", "#app", -1,  
+            echo '["PostElem", "#app", -1,  
                 ["input", {"type":"checkbox"}, []]]' > /tmp/guiseIn
-            echo '["PostHtml", "#app", -1,
+            echo '["PostElem", "#app", -1,
                 ["button", {"textContent": "Confirm"}, []]]' > /tmp/guiseIn
-            echo '["Sub", "input", "onchange", ["target.checked"]]' > /tmp/guiseIn
-            echo '["Sub", "button", "onclick", []]' > /tmp/guiseIn
+            echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/guiseIn
+            echo '["Subscribe", "button", "onclick", []]' > /tmp/guiseIn
         elif [ '["bye"]' = "$msg" ]; then
             echo "quitting..." >&2
             break
