@@ -1,0 +1,22 @@
+[
+// Elems have a standard form [tag, attrs, children]
+// Plus a few shorthands
+["div", {"max-width":"100px"},
+    [["label", {"textContent": "Click that button!"}],
+    ["button", "I'm a button!"]]]
+,
+// Commands
+["Subscribe", "div textarea", "onkeyup", ["target.value"]],
+["PostElem", "#app", -1, ["button", "I'm a button!"]],
+["PutElem", "#app", ["button", "I'm a button!"]],
+["DeleteElem", ".error"],
+["PatchAttrs", "label", {"textContent": "Click that button!"}],
+["PatchStyles", "label", {"foreground-color": "red"}],
+["Close"],
+
+// Events
+["hi"],
+["bye"],
+["ui", "div textarea", "onkeyup", {"target.value":"this is some text that i typed in!"}],
+["err", "something went wrong with your command: "],
+]

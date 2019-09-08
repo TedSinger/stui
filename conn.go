@@ -27,6 +27,8 @@ func (r RawMessage) toCommand() Command {
 		m = NewPatchAttrsCommand(r)
 	} else if kind == "PostElem" {
 		m = NewPostElemCommand(r)
+	} else if kind == "PutElem" {
+		m = NewPutElemCommand(r)
 	} else if kind == "DeleteElem" {
 		m = NewDeleteElemCommand(r)
 	} else if kind == "PatchStyles" {

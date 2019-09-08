@@ -47,8 +47,21 @@ type Elem struct {
 func NewElemFromInterface(v interface{}) Elem {
 	w := v.([]interface{})
 	tag := w[0].(string)
-	attrs := w[1].(map[string]interface{})
-	rawChildren := w[2].([]interface{})
+	attrs := make(map[string]interface{})
+	rawChildren := make([]interface{}, 0)
+	if len(w) > 1 {
+		switch second := w[1].(type) {
+		case map[string]interface{}:
+			attrs = second
+			if len(w) > 2 {
+				rawChildren = w[2].([]interface{})
+			}
+		case string:
+			attrs["textContent"] = second
+		case []interface{}:
+			rawChildren = second
+		}
+	}
 	actualChildren := make([]Elem, len(rawChildren))
 	for i, c := range rawChildren {
 		actualChildren[i] = NewElemFromInterface(c)
@@ -97,6 +110,26 @@ func NewPostElemCommand(v []interface{}) PostElemCommand {
 	return PostElemCommand{selector, int(index), elem}
 }
 
+type PutElemCommand struct {
+	selector string
+	elem Elem
+}
+
+func (c PutElemCommand) Apply(w webview.WebView) {
+	elem := c.elem.createElement("tmp")
+	forEachFnBody := elem + `elem.parentNode.replaceChild(tmp, elem);`
+	
+	jsFunc := fmt.Sprintf(`document.querySelectorAll("%s").forEach(function (elem) {%s});`,
+					 c.selector, forEachFnBody)
+	w.Dispatch(func() {w.Eval(jsFunc)})
+}
+
+func NewPutElemCommand(v []interface{}) PutElemCommand {
+	selector := v[1].(string)
+	elem := NewElemFromInterface(v[2])
+	return PutElemCommand{selector, elem}
+}
+
 type DeleteElemCommand struct {
 	selector string
 }
@@ -131,7 +164,13 @@ func (c PatchAttrsCommand) Apply(w webview.WebView) {
 	
 func NewPatchAttrsCommand(v []interface{}) PatchAttrsCommand {
 	selector := v[1].(string)
-	attrs := v[2].(map[string]interface{})
+	attrs := make(map[string]interface{})
+	switch updates := v[2].(type) {
+	case map[string]interface{}:
+		attrs = updates
+	case string:
+		attrs["textContent"] = updates
+	}
 	return PatchAttrsCommand{selector, attrs}
 }
 
