@@ -5,21 +5,21 @@ import (
 )
 
 func main() {
-	guise := exec.Command("guise", "-conn", "zmq")
-	guise.Start()
+	stui := exec.Command("stui", "-conn", "zmq")
+	stui.Start()
 	
 	sock, _ := zmq4.NewSocket(zmq4.PAIR)
-	sock.Connect("ipc:///tmp/guise")
+	sock.Connect("ipc:///tmp/stui")
 	
 	for {
 		event, _ := sock.Recv(0)
+		println(event)
 		if event == `["hi"]` {
 			sock.Send(`["PostElem", "#app", -1, ["button", "hi there!"]]`, 0)
 			sock.Send(`["Subscribe", "button", "onclick", ["y"]]`, 0)
 			sock.Send(`["Subscribe", "button", "onmouseover", ["x"]]`, 0)
 		} else if event == `["bye"]` {
-			break
+			return
 		}
-		println(event)
 	}
 }

@@ -6,31 +6,31 @@ import (
 )
 
 
-type Guise struct {
+type Stui struct {
 	View webview.WebView
 	Conn
 }
 
-func (g Guise) listenAndApply() {
+func (s Stui) listenAndApply() {
 	subs := make([]SubscribeCommand, 0)
 	for {
-		v := g.Conn.Recv()
+		v := s.Conn.Recv()
 		switch cmd := v.(type) {
 		case SubscribeCommand: // odd: the go driver is collecting subs...
 			subs = append(subs, cmd)
-			cmd.Apply(g.View)
+			cmd.Apply(s.View)
 		case PostElemCommand:
-			cmd.Apply(g.View)
+			cmd.Apply(s.View)
 			for _, sub := range subs {
-				sub.Apply(g.View)
+				sub.Apply(s.View)
 			}
 		default: // odd: ... but the webview is collecting CSS
-			cmd.Apply(g.View)
+			cmd.Apply(s.View)
 		}
 	}
 }
 
-func NewGuise(c Conn) Guise {
+func NewStui(c Conn) Stui {
 	c.Start()
 		
 	cb := func(w webview.WebView, s string) {c.Send(s)}
@@ -38,31 +38,31 @@ func NewGuise(c Conn) Guise {
 	view := webview.New(webview.Settings{
 		Width:     300,
 		Height:    400,
-		Title:     "Hi Guise",
+		Title:     "Hi Stui",
 		Resizable: true,
 		ExternalInvokeCallback: cb,
 	})
 	c.Send(`["hi"]`)
-	return Guise{view, c}
+	return Stui{view, c}
 }
 
 func main() {
-	connectionType := flag.String("conn", "stdio", "stdio or zmq (ipc:///tmp/guise)")
+	connectionType := flag.String("conn", "stdio", "stdio or zmq (ipc:///tmp/stui)")
 	flag.Parse()
 	var conn Conn
 	if *connectionType == "stdio" {
 		conn = StdioConn()
 	} else if *connectionType == "zmq" {
-		conn = NewZMQConn("ipc:///tmp/guise")
+		conn = NewZMQConn("ipc:///tmp/stui")
 	} else {
 		println("`conn` must be `stdio` or `zmq`")
 		return
 	}
-	g := NewGuise(conn)
-	go g.listenAndApply()
-	defer g.View.Exit()
-	defer g.Send(`["bye"]`)
-	defer g.Stop()
+	s := NewStui(conn)
+	go s.listenAndApply()
+	defer s.View.Exit()
+	defer s.Send(`["bye"]`)
+	defer s.Stop()
 	
-	g.View.Run()
+	s.View.Run()
 }

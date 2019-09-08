@@ -68,7 +68,6 @@ func (z ZMQConn) Send(s string) {
 
 func (z ZMQConn) Recv() Command {
 	someBytes, _ := z.sock.RecvBytes(0)
-	// os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
 	r := parseToMessage(someBytes)
 	return r.toCommand()
 }

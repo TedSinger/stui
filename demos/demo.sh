@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-rm /tmp/guiseIn
-mkfifo /tmp/guiseIn
-rm /tmp/guiseOut
-mkfifo /tmp/guiseOut
-tail -fz /tmp/guiseIn | guise > /tmp/guiseOut &
+rm /tmp/stuiIn
+mkfifo /tmp/stuiIn
+rm /tmp/stuiOut
+mkfifo /tmp/stuiOut
+tail -fz /tmp/stuiIn | stui > /tmp/stuiOut &
 
 choice=false
 
 while true
 do
-    if read msg </tmp/guiseOut; then
+    if read msg </tmp/stuiOut; then
         # echo $msg >&2
         if [ '["hi"]' = "$msg" ]; then
             echo '["PostElem", "#app", -1, 
-                ["label", {"textContent":"I can make a GUI in *bash*?!"},[]]]'  > /tmp/guiseIn
+                ["label", {"textContent":"I can make a GUI in *bash*?!"},[]]]'  > /tmp/stuiIn
             echo '["PostElem", "#app", -1,  
-                ["input", {"type":"checkbox"}, []]]' > /tmp/guiseIn
+                ["input", {"type":"checkbox"}, []]]' > /tmp/stuiIn
             echo '["PostElem", "#app", -1,
-                ["button", {"textContent": "Confirm"}, []]]' > /tmp/guiseIn
-            echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/guiseIn
-            echo '["Subscribe", "button", "onclick", []]' > /tmp/guiseIn
+                ["button", {"textContent": "Confirm"}, []]]' > /tmp/stuiIn
+            echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/stuiIn
+            echo '["Subscribe", "button", "onclick", []]' > /tmp/stuiIn
         elif [ '["bye"]' = "$msg" ]; then
             # echo "quitting..." >&2
             break
@@ -28,7 +28,7 @@ do
             
             if [ '"onclick"' = "$evType" ]; then
                 echo $choice 
-                echo '["Close"]' > /tmp/guiseIn
+                echo '["Close"]' > /tmp/stuiIn
             elif [ '"onchange"' = "$evType" ]; then
                 choice=$(echo $msg | jq .[3].\"target.checked\")
             fi

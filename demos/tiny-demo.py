@@ -2,18 +2,18 @@ import zmq
 import json
 import subprocess
 
-g = subprocess.Popen(['guise'],
+s = subprocess.Popen(['stui'],
     stdin=subprocess.PIPE,
     stdout=subprocess.PIPE)
 
 def send(command):
-    g.stdin.write(bytes(json.dumps(command), 'utf-8'))
-    g.stdin.flush()
+    s.stdin.write(bytes(json.dumps(command), 'utf-8'))
+    s.stdin.flush()
 
 are_we_gui = False
 
 while True:
-    event = json.loads(g.stdout.readline())
+    event = json.loads(s.stdout.readline())
     if event[0] == "hi":
         send(
             ["PostElem", "#app", -1, 

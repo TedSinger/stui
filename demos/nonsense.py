@@ -2,10 +2,10 @@ import zmq
 import subprocess
 import random
 
-g = subprocess.Popen(['guise', '-conn', 'zmq'])
+g = subprocess.Popen(['stui', '-conn', 'zmq'])
 c = zmq.Context()
 sock = c.socket(zmq.PAIR)
-sock.connect("ipc:///tmp/guise")
+sock.connect("ipc:///tmp/stui")
 
 def get_color():
     return 'rgb({},{},{})'.format(int(random.random()*256),int(random.random()*256),int(random.random()*256))
