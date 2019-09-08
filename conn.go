@@ -4,7 +4,6 @@ import (
 	"github.com/pebbe/zmq4"
 	"encoding/json"
 	"os"
-	"fmt"
 	"io"
 	"time"
 )
@@ -55,9 +54,6 @@ type ZMQConn struct {
 }
 
 func NewZMQConn(addr string) ZMQConn {
-	
-	fmt.Printf(`{"guise":"%s"}`, addr)
-	os.Stdout.Close() // hmm, this seems like a bad global effect...
 	sock, _ := zmq4.NewSocket(zmq4.PAIR)
 	return ZMQConn{addr, sock}
 }
@@ -72,7 +68,7 @@ func (z ZMQConn) Send(s string) {
 
 func (z ZMQConn) Recv() Command {
 	someBytes, _ := z.sock.RecvBytes(0)
-	os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
+	// os.Stderr.WriteString("guise: " + string(someBytes) + "\n")
 	r := parseToMessage(someBytes)
 	return r.toCommand()
 }
@@ -101,7 +97,7 @@ func FileConn(in string, out string) StreamConn {
 
 func (f StreamConn) Start() {}
 func (f StreamConn) Send(s string) {
-	f.out.Write([]byte(s + "\n\x00"))
+	f.out.Write([]byte(s + "\n"))
 }
 func (f StreamConn) Recv() Command {
 	var r RawMessage
@@ -109,6 +105,7 @@ func (f StreamConn) Recv() Command {
 		time.Sleep(time.Millisecond * 10)
 	}
 	f.decoder.Decode(&r)
+	// TODO: identify and clear unnecessary whitespace
 	return r.toCommand()
 }
 func (f StreamConn) Stop() {}

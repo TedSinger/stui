@@ -1,13 +1,11 @@
 import zmq
-import json
 import subprocess
 import random
 
-g = subprocess.Popen(['guise', '-conn', 'zmq'], stdout=subprocess.PIPE)
-addr = json.load(g.stdout)
+g = subprocess.Popen(['guise', '-conn', 'zmq'])
 c = zmq.Context()
 sock = c.socket(zmq.PAIR)
-sock.connect(addr['guise'])
+sock.connect("ipc:///tmp/guise")
 
 def get_color():
     return 'rgb({},{},{})'.format(int(random.random()*256),int(random.random()*256),int(random.random()*256))

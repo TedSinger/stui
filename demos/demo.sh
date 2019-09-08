@@ -10,7 +10,7 @@ choice=false
 while true
 do
     if read msg </tmp/guiseOut; then
-        echo $msg >&2
+        # echo $msg >&2
         if [ '["hi"]' = "$msg" ]; then
             echo '["PostElem", "#app", -1, 
                 ["label", {"textContent":"I can make a GUI in *bash*?!"},[]]]'  > /tmp/guiseIn
@@ -21,7 +21,7 @@ do
             echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/guiseIn
             echo '["Subscribe", "button", "onclick", []]' > /tmp/guiseIn
         elif [ '["bye"]' = "$msg" ]; then
-            echo "quitting..." >&2
+            # echo "quitting..." >&2
             break
         else
             evType=$(echo $msg | jq .[2])
