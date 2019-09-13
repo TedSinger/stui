@@ -24,6 +24,11 @@ func (s Stui) listenAndApply() {
 			for _, sub := range subs {
 				sub.Apply(s.View)
 			}
+		case CloseGUICommand:
+			cmd.Apply(s.View)
+			break
+		case CloseConnCommand:
+			break
 		default: // odd: ... but the webview is collecting CSS
 			cmd.Apply(s.View)
 		}

@@ -5,7 +5,8 @@
 Pass messages through stdio or 0mq sockets
 
 ```bash
-echo '["PostElem", "#app", -1, ["button", "stdio is all you need!"]]["Subscribe", "button", "onmousemove", ["x", "y"]]' | stui
+echo '["PostElem", "#app", -1, ["button", "stdio is all you need!"]]
+      ["Subscribe", "button", "onmousemove", ["x", "y"]]' | stui
 # ["hi"]
 # ["ui","button","onmousemove",{"x":78,"y":23}]
 # ["ui","button","onmousemove",{"x":77,"y":23}]

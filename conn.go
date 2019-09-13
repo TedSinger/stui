@@ -5,19 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"io"
-	"time"
 )
 
 type RawMessage []interface{}
 
-func parseToMessage(msg []byte) RawMessage {
-	var r RawMessage
-	json.Unmarshal(msg, &r)
-	return r
-}
 func (r RawMessage) toCommand() Command {
 	var m Command
-
 	kind := r[0].(string)
 
 	if kind == "Subscribe" {
@@ -33,7 +26,7 @@ func (r RawMessage) toCommand() Command {
 	} else if kind == "PatchStyles" {
 		m = NewPatchStylesCommand(r)
 	} else if kind == "Close" {
-		m = CloseCommand{}
+		m = CloseGUICommand{}
 	} else {
 		m = NewErrCommand(r)
 	}
@@ -68,7 +61,8 @@ func (z ZMQConn) Send(s string) {
 
 func (z ZMQConn) Recv() Command {
 	someBytes, _ := z.sock.RecvBytes(0)
-	r := parseToMessage(someBytes)
+	var r RawMessage
+	json.Unmarshal(someBytes, &r)
 	return r.toCommand()
 }
 
@@ -83,8 +77,9 @@ type StreamConn struct {
 }
 
 func StdioConn() StreamConn {
-	d := json.NewDecoder(os.Stdin)
-	return StreamConn{os.Stdin, d, os.Stdout}
+	in := os.Stdin
+	d := json.NewDecoder(in)
+	return StreamConn{in, d, os.Stdout}
 }
 
 func FileConn(in string, out string) StreamConn {
@@ -100,11 +95,11 @@ func (f StreamConn) Send(s string) {
 }
 func (f StreamConn) Recv() Command {
 	var r RawMessage
-	for ! f.decoder.More() {
-		time.Sleep(time.Millisecond * 10)
+	err := f.decoder.Decode(&r)
+	if err == io.EOF {
+		return CloseConnCommand{}
+	} else {
+		return r.toCommand()
 	}
-	f.decoder.Decode(&r)
-	// TODO: identify and clear unnecessary whitespace
-	return r.toCommand()
 }
 func (f StreamConn) Stop() {}
