@@ -2,7 +2,7 @@ import zmq
 import subprocess
 import random
 
-g = subprocess.Popen(['stui', '-conn', 'zmq'])
+g = subprocess.Popen(['stui', '-zmq', "ipc:///tmp/stui"])
 c = zmq.Context()
 sock = c.socket(zmq.PAIR)
 sock.connect("ipc:///tmp/stui")
@@ -15,7 +15,7 @@ send = sock.send_json
 disabled = False
 while True:
     event = sock.recv_json()
-    
+    # print(event)
     if event[0] == "hi":
         send(["PostElem", "#app", -1, ["button", {"textContent": "hello", "className":"foo"}, []]])
         send(["PostElem", "#app", -1, ["textarea", {}, []]])

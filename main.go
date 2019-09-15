@@ -52,16 +52,13 @@ func NewStui(c Conn) Stui {
 }
 
 func main() {
-	connectionType := flag.String("conn", "stdio", "stdio or zmq (ipc:///tmp/stui)")
+	zmq := flag.String("zmq", "", "Socket name, if using zmq, such as ipc:///tmp/stui. Will use stdio if omitted or blank")
 	flag.Parse()
 	var conn Conn
-	if *connectionType == "stdio" {
+	if *zmq == "" {
 		conn = StdioConn()
-	} else if *connectionType == "zmq" {
-		conn = NewZMQConn("ipc:///tmp/stui")
 	} else {
-		println("`conn` must be `stdio` or `zmq`")
-		return
+		conn = NewZMQConn(*zmq)
 	}
 	s := NewStui(conn)
 	go s.listenAndApply()

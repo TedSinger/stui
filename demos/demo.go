@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	stui := exec.Command("stui", "-conn", "zmq")
+	stui := exec.Command("stui", "-zmq", "ipc:///tmp/stui")
 	stui.Start()
 	
 	sock, _ := zmq4.NewSocket(zmq4.PAIR)
