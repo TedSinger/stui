@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/zserge/webview"
 	"flag"
+	"io/ioutil"
 )
 
 
@@ -35,19 +36,31 @@ func (s Stui) listenAndApply() {
 	}
 }
 
+func genStartFile() string {
+	f, _ := ioutil.TempFile("", "stui")
+	f.WriteString(`<body>
+    <div id="app"></div>
+</body>
+<script type="text/javascript">
+	window.external.invoke('["hi"]');
+</script>`)
+	f.Close()
+	return "file://" + f.Name()
+}
+
 func NewStui(c Conn) Stui {
 	c.Start()
 		
 	cb := func(w webview.WebView, s string) {c.Send(s)}
-
+	startingFileName := genStartFile()
 	view := webview.New(webview.Settings{
+		URL: startingFileName,
 		Width:     300,
 		Height:    400,
 		Title:     "Hi Stui",
 		Resizable: true,
 		ExternalInvokeCallback: cb,
 	})
-	c.Send(`["hi"]`)
 	return Stui{view, c}
 }
 
