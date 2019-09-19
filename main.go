@@ -4,16 +4,19 @@ import (
 	"github.com/zserge/webview"
 	"flag"
 	"io/ioutil"
+	"os"
 )
 
 
 type Stui struct {
 	View webview.WebView
 	Conn
+	readyWhenClosed chan bool
 }
 
 func (s Stui) listenAndApply() {
 	subs := make([]SubscribeCommand, 0)
+	<- s.readyWhenClosed
 	for {
 		v := s.Conn.Recv()
 		switch cmd := v.(type) {
@@ -38,20 +41,38 @@ func (s Stui) listenAndApply() {
 
 func genStartFile() string {
 	f, _ := ioutil.TempFile("", "stui")
-	f.WriteString(`<body>
+	f.WriteString(`
+<body>
     <div id="app"></div>
 </body>
 <script type="text/javascript">
 	window.external.invoke('["hi"]');
 </script>`)
 	f.Close()
-	return "file://" + f.Name()
+	os.Rename(f.Name(), f.Name() + ".html")
+	return "file://" + f.Name() + ".html"
 }
 
 func NewStui(c Conn) Stui {
 	c.Start()
-		
-	cb := func(w webview.WebView, s string) {c.Send(s)}
+	readyWhenClosed := make(chan bool, 1)
+	cb := func(w webview.WebView, s string) {
+		c.Send(s)
+		/* I need this callback to signal Stui.
+		   I don't want the Conn to know about the Webview readiness,
+		   and Stui itself can't exist in time for this function to close over it.
+		   So I have to close over some reftype which will be included in Stui.
+		   ... and what's the correct reftype for passing messages? A channel!
+		   So: here I am using a channel. The first call here sees the channel
+		   with no messages, goes to `default:`, and closes the channel. Stui
+		   and further calls here see a closed channel and continue with nil
+		*/ 
+		select {
+		case <- readyWhenClosed:
+		default:
+			close(readyWhenClosed)
+		}
+	}
 	startingFileName := genStartFile()
 	view := webview.New(webview.Settings{
 		URL: startingFileName,
@@ -61,7 +82,8 @@ func NewStui(c Conn) Stui {
 		Resizable: true,
 		ExternalInvokeCallback: cb,
 	})
-	return Stui{view, c}
+
+	return Stui{view, c, readyWhenClosed}
 }
 
 func main() {

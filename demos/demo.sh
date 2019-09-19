@@ -3,7 +3,7 @@ rm /tmp/stuiIn
 mkfifo /tmp/stuiIn
 rm /tmp/stuiOut
 mkfifo /tmp/stuiOut
-tail -fz /tmp/stuiIn | stui > /tmp/stuiOut &
+tail -f /tmp/stuiIn | stui > /tmp/stuiOut &
 
 choice=false
 
