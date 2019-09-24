@@ -17,9 +17,9 @@ while True:
     event = sock.recv_json()
     # print(event)
     if event[0] == "hi":
-        send(["PostElem", "#app", -1, ["button", {"textContent": "hello", "className":"foo"}, []]])
-        send(["PostElem", "#app", -1, ["textarea", {}, []]])
-        send(["PostElem", "#app", 1, ["label", {}, []]])
+        send(["PostElem", "#app", -1, ["button", {"className":"foo"}, "hello"]])
+        send(["PostElem", "#app", -1, ["textarea"]])
+        send(["PostElem", "#app", 1, ["label"]])
         send(["Subscribe", "button", "onclick", ["x", "y"]])
         send(["Subscribe", "textarea", "onkeyup", ["target.value"]])
         send(["Subscribe", "textarea", "onmousemove", ["x"]])

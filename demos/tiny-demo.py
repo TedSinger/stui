@@ -17,10 +17,10 @@ while True:
     if event[0] == "hi":
         send(
             ["PostElem", "#app", -1, 
-                ["div", [
+                ["div", 
                     ["label", "Are we GUI?"], 
                     ["input", {"type":"checkbox", "className":"foo"}],
-                    ["button", "Confirm"]]]])
+                    ["button", "Confirm"]]])
         send(["Subscribe", ".foo", "onchange", ["target.checked"]])
         send(["Subscribe", "button", "onclick", []])
     elif event[0] == "bye":

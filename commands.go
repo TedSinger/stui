@@ -48,29 +48,41 @@ func NewElemFromInterface(v interface{}) Elem {
 	w := v.([]interface{})
 	tag := w[0].(string)
 	attrs := make(map[string]interface{})
-	rawChildren := make([]interface{}, 0)
+	restIdx := 1
+	children := make([]Elem, 0)
 	if len(w) > 1 {
 		switch second := w[1].(type) {
 		case map[string]interface{}:
 			attrs = second
-			if len(w) > 2 {
-				rawChildren = w[2].([]interface{})
-			}
-		case string:
-			attrs["textContent"] = second
-		case []interface{}:
-			rawChildren = second
+			restIdx = 2
+		default:
+			//
 		}
 	}
-	actualChildren := make([]Elem, len(rawChildren))
-	for i, c := range rawChildren {
-		actualChildren[i] = NewElemFromInterface(c)
+	for i := restIdx; i < len(w); i++ {
+		switch next := w[i].(type) {
+		case string:
+			textNodeAttrs := map[string]interface{}{"textContent":next}
+			children = append(children, 
+				Elem{
+					"textNode",
+					 textNodeAttrs,
+					 []Elem{},
+					 })
+		case []interface{}:
+			children = append(children, NewElemFromInterface(next))
+		}
 	}
-	return Elem{tag, attrs, actualChildren}
+	return Elem{tag, attrs, children}
 }
 
 func (e Elem) createElement(jsName string) string {
-	ret := fmt.Sprintf(`%s = document.createElement("%s");`, jsName, e.tag)
+	var ret string
+	if e.tag == "textNode" {
+		ret = fmt.Sprintf(`%s = document.createTextNode("");`, jsName)
+	} else {
+		ret = fmt.Sprintf(`%s = document.createElement("%s");`, jsName, e.tag)
+	}
 	for k, v := range e.attrs {
 		valuePart, _ := json.Marshal(v)
 		ret += fmt.Sprintf(`%s.%s = %s;`, jsName, k, string(valuePart)) + "\n"

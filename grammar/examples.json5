@@ -1,0 +1,58 @@
+[
+    // See `http://www.jsonml.org/` for element grammar. This is the left front-page example:
+    ["ul",
+        ["li", {"style": "color:red"}, "First Item"],
+        ["li", {"title": "Some hover text.", "style" : "color:green"}, "Second Item"],
+        ["li", ["span", {"class" : "code-example-third"}, "Third"], " Item"]
+    ],
+
+    // Commands:
+    // ["PostElem", selector, insertion index (-1 for append), new element]
+    // Inserts a new element under each existing element that matches the selector
+    ["PostElem", "#app", -1, ["button", "I'm a button!"]],
+
+    // ["Subscribe", selector, event, [event values to return]]
+    // Instructs the driver to report each matching event (see "ui" events below)
+    // Subscription lifetimes are meant to be independent of individual elements. 
+    // If an element is created after a subscription with matching selector, the
+    // driver should still report relevant events. If an element ceases matching
+    // the selector of a subscription, the driver should stop reporting events on it
+    ["Subscribe", "div textarea", "onkeyup", ["target.value"]],
+    
+    // ["PutElem", selector, replacement element]
+    // Replaces each matching element with the given element
+    ["PutElem", "#app", ["button", "I'm a button!"]],
+
+    // ["DeleteElem", selector]
+    // Removes each matching element
+    ["DeleteElem", ".error"],
+
+    // ["PatchAttrs", selector, attributes]
+    // Add or amend attributes of matching elements
+    ["PatchAttrs", "label", {"textContent": "Click that button!"}],
+
+    // ["PatchAttrs", selector, styles]
+    // Add or amend CSS styles. CSS styles, like on the web, are independent of the
+    // lifetimes of individual elements. New matching elements should receive declared
+    // styles, and elements that cease matching a rule should lose that style
+    ["PatchStyles", "label", {"foreground-color": "red"}],
+
+    // ["Close"]
+    // Terminate the GUI
+    ["Close"],
+
+    // Events:
+    // Produced when the GUI is ready to accept messages
+    ["hi"],
+
+    // Produced when the GUI terminates cleanly
+    ["bye"],
+
+    // Produced on each trigger of each Subscribe command. The values specified
+    // in the Subscribe command become the keys of the dictionary returned.
+    ["ui", "div textarea", "onkeyup", {"target.value":"this is some text that i typed in!"}],
+    
+    // Produced on a command that cannot be processed. The exact form of this message
+    // is not fixed and should not be relied on.
+    ["err", "something went wrong with your command: '{'"],
+]

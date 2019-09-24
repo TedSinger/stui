@@ -13,11 +13,11 @@ do
         # echo $msg >&2
         if [ '["hi"]' = "$msg" ]; then
             echo '["PostElem", "#app", -1, 
-                ["label", {"textContent":"I can make a GUI in *bash*?!"},[]]]'  > /tmp/stuiIn
+                ["label", "I can make a GUI in *bash*?!"]]'  > /tmp/stuiIn
             echo '["PostElem", "#app", -1,  
-                ["input", {"type":"checkbox"}, []]]' > /tmp/stuiIn
+                ["input", {"type":"checkbox"}]]' > /tmp/stuiIn
             echo '["PostElem", "#app", -1,
-                ["button", {"textContent": "Confirm"}, []]]' > /tmp/stuiIn
+                ["button", "Confirm"]]' > /tmp/stuiIn
             echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/stuiIn
             echo '["Subscribe", "button", "onclick", []]' > /tmp/stuiIn
         elif [ '["bye"]' = "$msg" ]; then
