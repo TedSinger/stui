@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"github.com/pebbe/zmq4"
 	"encoding/json"
 	"os"
@@ -26,7 +27,7 @@ func (r RawMessage) toCommand() Command {
 	} else if kind == "PatchStyles" {
 		m = NewPatchStylesCommand(r)
 	} else if kind == "Close" {
-		m = CloseGUICommand{}
+		m = CloseCommand{}
 	} else {
 		m = NewErrCommand(r)
 	}
@@ -39,7 +40,7 @@ type Duplex struct {
 }
 
 type Conn interface {
-	Start()
+	Start(*sync.WaitGroup)
 	GetDuplex() *Duplex
 }
 
@@ -56,20 +57,21 @@ func NewZMQConn(duplex *Duplex, addr string) ZMQConn {
 
 func (z ZMQConn) GetDuplex() *Duplex {return z.duplex}
 
-func (z ZMQConn) Start() {
+func (z ZMQConn) Start(wg *sync.WaitGroup) {
 	z.sock.Bind(z.addr)
 	go z.Recv()
 	for msg := range z.duplex.Out {
 		z.sock.Send(msg, 0)
 	}
 	z.sock.Close()
+	wg.Done()
 }
 
 func (z ZMQConn) Recv() {
 	for {
 		someBytes, err := z.sock.RecvBytes(0)
 		if err != nil {
-			z.duplex.In <- CloseConnCommand{}
+			close(z.duplex.In)
 			break
 		} else {
 			var r RawMessage
@@ -99,18 +101,20 @@ func FileConn(duplex *Duplex, in string, out string) StreamConn {
 	return StreamConn{duplex, f, d, g}
 }
 
-func (f StreamConn) Start() {
+func (f StreamConn) Start(wg *sync.WaitGroup) {
 	go f.Recv()
 	for msg := range f.duplex.Out {
 		f.out.Write([]byte(msg + "\n"))
 	}
+	wg.Done()
 }
+
 func (f StreamConn) Recv() {
 	for {
 		var r RawMessage
 		err := f.decoder.Decode(&r)
 		if err == io.EOF {
-			f.duplex.In <- CloseConnCommand{}
+			close(f.duplex.In)
 			break
 		} else {
 			f.duplex.In <- r.toCommand()

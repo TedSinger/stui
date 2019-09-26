@@ -212,15 +212,11 @@ func NewPatchStylesCommand(v []interface{}) PatchStylesCommand {
 	return PatchStylesCommand{selector, actualStyles}
 }
 
-type CloseGUICommand struct {}
+type CloseCommand struct {}
 
-func (c CloseGUICommand) Apply(w webview.WebView) {
+func (c CloseCommand) Apply(w webview.WebView) {
 	w.Dispatch(func() {w.Terminate()})
 }
-
-type CloseConnCommand struct {}
-
-func (c CloseConnCommand) Apply(w webview.WebView) {}
 
 type ErrCommand struct {
 	original []interface{}

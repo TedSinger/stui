@@ -5,12 +5,13 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"sync"
 )
 
 
 type Stui struct {
 	View webview.WebView
-	Duplex
+	*Duplex
 	readyWhenClosed chan bool
 }
 
@@ -28,10 +29,8 @@ func (s Stui) listenAndApply() {
 			for _, sub := range subs {
 				sub.Apply(s.View)
 			}
-		case CloseGUICommand:
+		case CloseCommand:
 			cmd.Apply(s.View)
-			break
-		case CloseConnCommand:
 			break
 		default: // odd: ... but the webview is collecting CSS
 			cmd.Apply(s.View)
@@ -53,7 +52,7 @@ func genStartFile() string {
 	return "file://" + f.Name() + ".html"
 }
 
-func NewStui(d Duplex) Stui {
+func NewStui(d *Duplex) Stui {
 	readyWhenClosed := make(chan bool, 1)
 	cb := func(w webview.WebView, s string) {
 		d.Out <- s
@@ -95,14 +94,15 @@ func main() {
 	} else {
 		conn = NewZMQConn(&d, *zmq)
 	}
-	go conn.Start()
-	s := NewStui(d)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go conn.Start(wg)
+	s := NewStui(&d)
 	go s.listenAndApply()
 	defer s.View.Exit()
-	defer func(){
-		d.Out <- `["bye"]`
-		close(d.Out)
-	}()
-	
+
 	s.View.Run()
+	d.Out <- `["bye"]`
+	close(d.Out)
+	wg.Wait()
 }
