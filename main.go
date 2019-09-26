@@ -10,15 +10,15 @@ import (
 
 type Stui struct {
 	View webview.WebView
-	Conn
+	Duplex
 	readyWhenClosed chan bool
 }
 
 func (s Stui) listenAndApply() {
 	subs := make([]SubscribeCommand, 0)
 	<- s.readyWhenClosed
-	for {
-		v := s.Conn.Recv()
+	dup := s.Duplex
+	for v := range dup.In {
 		switch cmd := v.(type) {
 		case SubscribeCommand: // odd: the go driver is collecting subs...
 			subs = append(subs, cmd)
@@ -53,11 +53,10 @@ func genStartFile() string {
 	return "file://" + f.Name() + ".html"
 }
 
-func NewStui(c Conn) Stui {
-	c.Start()
+func NewStui(d Duplex) Stui {
 	readyWhenClosed := make(chan bool, 1)
 	cb := func(w webview.WebView, s string) {
-		c.Send(s)
+		d.Out <- s
 		/* I need this callback to signal Stui.
 		   I don't want the Conn to know about the Webview readiness,
 		   and Stui itself can't exist in time for this function to close over it.
@@ -83,23 +82,27 @@ func NewStui(c Conn) Stui {
 		ExternalInvokeCallback: cb,
 	})
 
-	return Stui{view, c, readyWhenClosed}
+	return Stui{view, d, readyWhenClosed}
 }
 
 func main() {
 	zmq := flag.String("zmq", "", "Socket name, if using zmq, such as ipc:///tmp/stui. Will use stdio if omitted or blank")
 	flag.Parse()
 	var conn Conn
+	d := Duplex{make(chan Command, 9), make(chan string, 9)}
 	if *zmq == "" {
-		conn = StdioConn()
+		conn = StdioConn(&d)
 	} else {
-		conn = NewZMQConn(*zmq)
+		conn = NewZMQConn(&d, *zmq)
 	}
-	s := NewStui(conn)
+	go conn.Start()
+	s := NewStui(d)
 	go s.listenAndApply()
 	defer s.View.Exit()
-	defer s.Send(`["bye"]`)
-	defer s.Stop()
+	defer func(){
+		d.Out <- `["bye"]`
+		close(d.Out)
+	}()
 	
 	s.View.Run()
 }
