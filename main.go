@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
-	"sync"
 )
 
 
@@ -86,17 +85,43 @@ func NewStui(d *Duplex) Stui {
 
 func main() {
 	zmq := flag.String("zmq", "", "Socket name, if using zmq, such as ipc:///tmp/stui. Will use stdio if omitted or blank")
+	infileName := flag.String("in", "", "infileName, default stdin")
+	outfileName := flag.String("out", "", "outfileName, default stdout")
 	flag.Parse()
 	var conn Conn
-	d := Duplex{make(chan Command, 9), make(chan string, 9)}
-	if *zmq == "" {
-		conn = StdioConn(&d)
+	d := NewDuplex()
+	if *zmq != "" {
+		conn = NewZMQConn(*zmq)
 	} else {
-		conn = NewZMQConn(&d, *zmq)
+		tobein := func() (*os.File, error) {
+			var infile *os.File
+			var err error
+			if (*infileName == "") {
+				infile = os.Stdin
+			} else {
+				infile, err = os.Open(*infileName)
+				if err != nil {
+					panic(err)
+				}
+			}
+			return infile, err
+		}
+		tobeout := func() (*os.File, error) {
+			var outfile *os.File
+			var err error
+			if (*outfileName == "") {
+				outfile = os.Stdout
+			} else {
+				outfile, err = os.OpenFile(*outfileName, os.O_WRONLY, 0700)
+				if err != nil {
+					panic(err)	
+				}
+			}
+			return outfile, err
+		}
+		conn = NewFileConn(tobein, tobeout)
 	}
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go conn.Start(wg)
+	go conn.Start(&d)
 	s := NewStui(&d)
 	go s.listenAndApply()
 	defer s.View.Exit()
@@ -104,5 +129,5 @@ func main() {
 	s.View.Run()
 	d.Out <- `["bye"]`
 	close(d.Out)
-	wg.Wait()
+	d.Done.Wait()
 }

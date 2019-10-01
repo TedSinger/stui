@@ -1,25 +1,24 @@
 #!/usr/bin/env bash
 rm /tmp/stuiIn
 mkfifo /tmp/stuiIn
-rm /tmp/stuiOut
-mkfifo /tmp/stuiOut
-tail -f /tmp/stuiIn | stui > /tmp/stuiOut &
 
 choice=false
 
-while true
-do
-    if read msg </tmp/stuiOut; then
-        # echo $msg >&2
+app () {
+    echo "looping..." >&2
+    while read msg ; do
+        echo "received an event: " $msg >&2
         if [ '["hi"]' = "$msg" ]; then
             echo '["PostElem", "#app", -1, 
-                ["label", "I can make a GUI in *bash*?!"]]'  > /tmp/stuiIn
+            ["label", "I can make a GUI in *bash*?!"]]'
             echo '["PostElem", "#app", -1,  
-                ["input", {"type":"checkbox"}]]' > /tmp/stuiIn
+                ["input", {"type":"checkbox"}]]'
             echo '["PostElem", "#app", -1,
-                ["button", "Confirm"]]' > /tmp/stuiIn
-            echo '["Subscribe", "input", "onchange", ["target.checked"]]' > /tmp/stuiIn
-            echo '["Subscribe", "button", "onclick", []]' > /tmp/stuiIn
+                ["button", "Confirm"]]'
+            echo '["Subscribe", "input", "onchange", ["target.checked"]]'
+            echo '["Subscribe", "button", "onclick", []]'
+            echo '["Subscribe", "body", "onmousemove", ["x","y"]]'
+            echo '["PatchStyles", ".path", {"position":"absolute"}]'
         elif [ '["bye"]' = "$msg" ]; then
             # echo "quitting..." >&2
             break
@@ -27,12 +26,18 @@ do
             evType=$(echo $msg | jq .[2])
             
             if [ '"onclick"' = "$evType" ]; then
-                echo $choice 
-                echo '["Close"]' > /tmp/stuiIn
+                echo $choice >&2
+                echo '["Close"]'
             elif [ '"onchange"' = "$evType" ]; then
                 choice=$(echo $msg | jq .[3].\"target.checked\")
+            elif [ '"onmousemove"' = "$evType" ]; then
+                x=`echo $msg | jq '.[3].x' `
+                y=`echo $msg | jq '.[3].y'`
+                echo '["PostElem", "#app", -1,
+                ["button", {"className": "path", "style":"left:'$x'px; top:'$y'px"}]]'
             fi
-            
         fi
-    fi
-done
+    done
+}
+
+app < <(stui -in /tmp/stuiIn) > /tmp/stuiIn

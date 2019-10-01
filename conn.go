@@ -37,37 +37,47 @@ func (r RawMessage) toCommand() Command {
 type Duplex struct {
 	In chan Command
 	Out chan string
+	Done *sync.WaitGroup
+}
+
+func NewDuplex() Duplex {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	d := Duplex{make(chan Command, 9), make(chan string, 9), wg}
+	return d
 }
 
 type Conn interface {
-	Start(*sync.WaitGroup)
-	GetDuplex() *Duplex
+	Start(*Duplex)
 }
 
 type ZMQConn struct {
-	duplex *Duplex
 	addr string
 	sock *zmq4.Socket
+	duplex *Duplex
 }
 
-func NewZMQConn(duplex *Duplex, addr string) ZMQConn {
+func NewZMQConn(addr string) ZMQConn {
 	sock, _ := zmq4.NewSocket(zmq4.PAIR)
-	return ZMQConn{duplex, addr, sock}
+	return ZMQConn{addr, sock, nil}
 }
 
-func (z ZMQConn) GetDuplex() *Duplex {return z.duplex}
-
-func (z ZMQConn) Start(wg *sync.WaitGroup) {
+func (z ZMQConn) Start(duplex *Duplex) {
+	z.duplex = duplex
 	z.sock.Bind(z.addr)
-	go z.Recv()
+	go z.send()
+	go z.recv()
+}
+
+func (z ZMQConn) send() {
 	for msg := range z.duplex.Out {
 		z.sock.Send(msg, 0)
 	}
 	z.sock.Close()
-	wg.Done()
+	z.duplex.Done.Done()
 }
 
-func (z ZMQConn) Recv() {
+func (z ZMQConn) recv() {
 	for {
 		someBytes, err := z.sock.RecvBytes(0)
 		if err != nil {
@@ -81,45 +91,50 @@ func (z ZMQConn) Recv() {
 	}
 }
 
-type StreamConn struct {
+type ToBeFile func() (*os.File, error)
+
+type FileConn struct {
+	tobein ToBeFile
+	tobeout ToBeFile
 	duplex *Duplex
 	in io.Reader
 	decoder *json.Decoder
 	out io.Writer
 }
 
-func StdioConn(duplex *Duplex) StreamConn {
-	in := os.Stdin
-	d := json.NewDecoder(in)
-	return StreamConn{duplex, in, d, os.Stdout}
+
+func NewFileConn(in ToBeFile, out ToBeFile) FileConn {
+		return FileConn{in, out, nil, nil, nil, nil}
 }
 
-func FileConn(duplex *Duplex, in string, out string) StreamConn {
-	f, _ := os.Open(in)
-	g, _ := os.OpenFile(out, os.O_WRONLY, 777)
-	d := json.NewDecoder(f)
-	return StreamConn{duplex, f, d, g}
+func (f FileConn) Start(duplex *Duplex) {
+	f.duplex = duplex
+	go f.send()
+	go f.recv()
 }
 
-func (f StreamConn) Start(wg *sync.WaitGroup) {
-	go f.Recv()
+func (f FileConn) send() {
+	f.out, _ = f.tobeout()
 	for msg := range f.duplex.Out {
 		f.out.Write([]byte(msg + "\n"))
 	}
-	wg.Done()
+	f.duplex.Done.Done()
 }
 
-func (f StreamConn) Recv() {
+func (f FileConn) recv() {
+	var err error
+	f.in, err = f.tobein()
+	if err != nil {
+		panic(err)
+	}
+	f.decoder = json.NewDecoder(f.in)
 	for {
 		var r RawMessage
 		err := f.decoder.Decode(&r)
-		if err == io.EOF {
-			close(f.duplex.In)
-			break
-		} else {
+		if r != nil && (len(r) != 0){
 			f.duplex.In <- r.toCommand()
-		}	
+		} else if err == io.EOF {
+			break
+		}
 	}
 }
-
-func (f StreamConn) GetDuplex() *Duplex {return f.duplex}
